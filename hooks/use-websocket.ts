@@ -58,7 +58,7 @@ export function useWebSocket() {
       }
 
       ws.current.onerror = (error) => {
-        console.error("WebSocket error:", error)
+        console.log("WebSocket error:", error)
         setError("WebSocket connection error")
         setConnectionStatus("disconnected")
       }

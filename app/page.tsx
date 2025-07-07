@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
 import { Alert, AlertDescription } from "@/components/ui/alert"
-import { Plus, Trash2, RefreshCw, Search, LogOut, Loader2 } from "lucide-react"
+import { Plus, Trash2, RefreshCw, Search, LogOut } from "lucide-react"
 import { URLTable } from "@/components/url-table"
 import { URLDetails } from "@/components/url-details"
 import { AddURLDialog } from "@/components/add-url-dialog"
@@ -61,21 +61,21 @@ function DashboardContent() {
     }
   }
 
-  const filteredURLs = (urls || []).filter(
+  const filteredURLs = (Array.isArray(urls) ? urls : []).filter(
     (url) =>
       url.url.toLowerCase().includes(searchQuery.toLowerCase()) ||
       url.title?.toLowerCase().includes(searchQuery.toLowerCase()),
   )
 
   const statusCounts = {
-    queued: (urls || []).filter((u) => u.status === "queued").length,
-    running: (urls || []).filter((u) => u.status === "running").length,
-    completed: (urls || []).filter((u) => u.status === "completed").length,
-    error: (urls || []).filter((u) => u.status === "error").length,
+    queued: (Array.isArray(urls) ? urls : []).filter((u) => u.status === "queued").length,
+    running: (Array.isArray(urls) ? urls : []).filter((u) => u.status === "running").length,
+    completed: (Array.isArray(urls) ? urls : []).filter((u) => u.status === "completed").length,
+    error: (Array.isArray(urls) ? urls : []).filter((u) => u.status === "error").length,
   }
 
   if (selectedURL) {
-    const urlData = (urls || []).find((u) => u.id === selectedURL)
+    const urlData = (Array.isArray(urls) ? urls : []).find((u) => u.id === selectedURL)
     if (urlData) {
       return <URLDetails urlData={urlData} onBack={() => setSelectedURL(null)} />
     }
@@ -85,7 +85,6 @@ function DashboardContent() {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
-          <Loader2 className="h-8 w-8 animate-spin mx-auto mb-4" />
           <p className="text-muted-foreground">Loading dashboard...</p>
         </div>
       </div>

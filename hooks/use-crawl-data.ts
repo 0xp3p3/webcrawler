@@ -42,7 +42,7 @@ export function useCrawlData() {
 
   const updateURLStatus = useCallback((url: string, status: URLData["status"], data?: Partial<URLData>) => {
     setUrls((prev) =>
-      prev.map((u) => (u.url === url ? { ...u, status, ...data, updatedAt: new Date().toISOString() } : u)),
+      (Array.isArray(prev) ? prev : []).map((u) => (u.url === url ? { ...u, status, ...data, updatedAt: new Date().toISOString() } : u)),
     )
   }, [])
 
