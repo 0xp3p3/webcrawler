@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"web-crawler/internal/models"
+	"web-crawler/internal/websocket"
 
 	"github.com/google/uuid"
 )
@@ -14,12 +15,14 @@ import (
 type URLService struct {
 	db      *sql.DB
 	crawler *CrawlerService
+	hub     *websocket.Hub
 }
 
-func NewURLService(db *sql.DB, crawler *CrawlerService) *URLService {
+func NewURLService(db *sql.DB, crawler *CrawlerService, hub *websocket.Hub) *URLService {
 	return &URLService{
 		db:      db,
 		crawler: crawler,
+		hub:     hub,
 	}
 }
 
@@ -187,12 +190,41 @@ func (s *URLService) performCrawl(urlID string) {
 		return
 	}
 
+	// Broadcast crawling started
+	s.hub.BroadcastToUser(userID, &models.WebSocketMessage{
+		Type:      "crawl_started",
+		URL:       url,
+		Status:    "running",
+		Message:   "Starting to crawl URL",
+		Timestamp: time.Now(),
+	})
+
 	// Perform crawling
 	result, err := s.crawler.CrawlURL(url)
 	if err != nil {
+		// Broadcast error
+		s.hub.BroadcastToUser(userID, &models.WebSocketMessage{
+			Type:      "crawl_error",
+			URL:       url,
+			Status:    "error",
+			Error:     err.Error(),
+			Message:   "Crawling failed",
+			Timestamp: time.Now(),
+		})
+		
 		s.crawler.UpdateURLStatus(urlID, "error", nil, err.Error())
 		return
 	}
+
+	// Broadcast success
+	s.hub.BroadcastToUser(userID, &models.WebSocketMessage{
+		Type:      "crawl_completed",
+		URL:       url,
+		Status:    "completed",
+		Data:      result,
+		Message:   "Crawling completed successfully",
+		Timestamp: time.Now(),
+	})
 
 	// Update with results
 	s.crawler.UpdateURLStatus(urlID, "completed", result, "")
