@@ -61,17 +61,19 @@ function DashboardContent() {
     }
   }
 
-  const filteredURLs = urls.filter(
-    (url) =>
-      url.url.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      url.title?.toLowerCase().includes(searchQuery.toLowerCase()),
-  )
+  const filteredURLs = Array.isArray(urls)
+    ? urls.filter(
+        (url) =>
+          url.url.toLowerCase().includes(searchQuery.toLowerCase()) ||
+          url.title?.toLowerCase().includes(searchQuery.toLowerCase()),
+      )
+    : []
 
   const statusCounts = {
-    queued: urls.filter((u) => u.status === "queued").length,
-    running: urls.filter((u) => u.status === "running").length,
-    completed: urls.filter((u) => u.status === "completed").length,
-    error: urls.filter((u) => u.status === "error").length,
+    queued: Array.isArray(urls) ? urls.filter((u) => u.status === "queued").length : 0,
+    running: Array.isArray(urls) ? urls.filter((u) => u.status === "running").length : 0,
+    completed: Array.isArray(urls) ? urls.filter((u) => u.status === "completed").length : 0,
+    error: Array.isArray(urls) ? urls.filter((u) => u.status === "error").length : 0,
   }
 
   if (selectedURL) {

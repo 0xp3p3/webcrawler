@@ -19,10 +19,13 @@ export function useCrawlData() {
       setLoading(true)
       setError(null)
       const response = await apiClient.get("/api/urls")
-      setUrls(response.data)
+      // Handle both direct array response and wrapped response
+      const urlsData = response.data?.data || response.data || []
+      setUrls(Array.isArray(urlsData) ? urlsData : [])
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to fetch URLs")
       console.error("Error fetching URLs:", err)
+      setUrls([]) // Ensure urls is always an array
     } finally {
       setLoading(false)
     }
@@ -31,9 +34,12 @@ export function useCrawlData() {
   const addURL = useCallback(async (url: string) => {
     try {
       const response = await apiClient.post("/api/urls", { url })
-      const newURL = response.data
-      setUrls((prev) => [newURL, ...prev])
-      return newURL
+      // Handle both direct response and wrapped response
+      const newURL = response.data?.data || response.data
+      if (newURL) {
+        setUrls((prev) => [newURL, ...prev])
+        return newURL
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to add URL")
       throw err
