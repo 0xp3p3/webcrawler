@@ -2,17 +2,17 @@ package main
 
 import (
 	"log"
-	"os"
 
-	"github.com/gin-contrib/cors"
-	"github.com/gin-gonic/gin"
-	"github.com/joho/godotenv"
 	"web-crawler/internal/config"
 	"web-crawler/internal/database"
 	"web-crawler/internal/handlers"
 	"web-crawler/internal/middleware"
 	"web-crawler/internal/services"
 	"web-crawler/internal/websocket"
+
+	"github.com/gin-contrib/cors"
+	"github.com/gin-gonic/gin"
+	"github.com/joho/godotenv"
 )
 
 func main() {

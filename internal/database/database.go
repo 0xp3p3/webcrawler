@@ -56,8 +56,8 @@ func Migrate(db *sql.DB) error {
 			INDEX idx_status (status),
 			INDEX idx_created_at (created_at)
 		)`,
-		`INSERT IGNORE INTO users (id, username, password_hash, role) VALUES 
-		('admin-user-id', 'admin', '$2a$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 'admin')`,
+		`INSERT IGNORE INTO users (id, username, email,password_hash, role) VALUES 
+		('admin-user-id', 'admin', 'admin@example.com', '$2a$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 'admin')`,
 	}
 
 	for _, query := range queries {

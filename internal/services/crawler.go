@@ -5,13 +5,12 @@ import (
 	"fmt"
 	"net/http"
 	"net/url"
-	"regexp"
-	"strconv"
 	"strings"
 	"time"
 
-	"golang.org/x/net/html"
 	"web-crawler/internal/models"
+
+	"golang.org/x/net/html"
 )
 
 type CrawlerService struct {
@@ -231,10 +230,10 @@ func (s *CrawlerService) UpdateURLStatus(urlID, status string, result *CrawlResu
 	if result != nil {
 		query += `, title = ?, html_version = ?, heading_tags = ?, internal_links = ?, 
 				   external_links = ?, broken_links = ?, has_login_form = ?, analysis_duration = ?`
-		
+
 		headingTagsJSON, _ := result.HeadingTags.Value()
 		brokenLinksJSON, _ := result.BrokenLinks.Value()
-		
+
 		args = append(args, result.Title, result.HTMLVersion, headingTagsJSON,
 			result.InternalLinks, result.ExternalLinks, brokenLinksJSON,
 			result.HasLoginForm, int(result.Duration.Milliseconds()))

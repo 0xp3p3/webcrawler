@@ -3,11 +3,12 @@ package services
 import (
 	"database/sql"
 	"fmt"
-	"strconv"
+	"strings"
 	"time"
 
-	"github.com/google/uuid"
 	"web-crawler/internal/models"
+
+	"github.com/google/uuid"
 )
 
 type URLService struct {
@@ -126,7 +127,7 @@ func (s *URLService) DeleteURLs(userID string, urlIDs []string) error {
 	// Build placeholders for IN clause
 	placeholders := make([]string, len(urlIDs))
 	args := []interface{}{userID}
-	
+
 	for i, id := range urlIDs {
 		placeholders[i] = "?"
 		args = append(args, id)

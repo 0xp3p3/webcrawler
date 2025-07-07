@@ -5,10 +5,11 @@ import (
 	"errors"
 	"time"
 
+	"web-crawler/internal/models"
+
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/google/uuid"
 	"golang.org/x/crypto/bcrypt"
-	"web-crawler/internal/models"
 )
 
 type AuthService struct {
@@ -106,16 +107,16 @@ func (s *AuthService) getUserByUsername(db *sql.DB, username string) (*models.Us
 	user := &models.User{}
 	query := `SELECT id, username, email, password_hash, role, created_at, updated_at 
 			  FROM users WHERE username = ?`
-	
+
 	err := db.QueryRow(query, username).Scan(
 		&user.ID, &user.Username, &user.Email, &user.PasswordHash,
 		&user.Role, &user.CreatedAt, &user.UpdatedAt,
 	)
-	
+
 	if err != nil {
 		return nil, err
 	}
-	
+
 	return user, nil
 }
 
@@ -123,16 +124,16 @@ func (s *AuthService) getUserByID(db *sql.DB, userID string) (*models.User, erro
 	user := &models.User{}
 	query := `SELECT id, username, email, password_hash, role, created_at, updated_at 
 			  FROM users WHERE id = ?`
-	
+
 	err := db.QueryRow(query, userID).Scan(
 		&user.ID, &user.Username, &user.Email, &user.PasswordHash,
 		&user.Role, &user.CreatedAt, &user.UpdatedAt,
 	)
-	
+
 	if err != nil {
 		return nil, err
 	}
-	
+
 	return user, nil
 }
 
@@ -154,10 +155,10 @@ func (s *AuthService) CreateUser(db *sql.DB, username, email, password string) (
 
 	query := `INSERT INTO users (id, username, email, password_hash, role, created_at, updated_at) 
 			  VALUES (?, ?, ?, ?, ?, ?, ?)`
-	
+
 	_, err = db.Exec(query, user.ID, user.Username, user.Email, user.PasswordHash,
 		user.Role, user.CreatedAt, user.UpdatedAt)
-	
+
 	if err != nil {
 		return nil, err
 	}
