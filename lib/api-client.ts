@@ -1,97 +1,162 @@
-import axios, { type AxiosInstance, type AxiosError } from "axios"
-import { env } from "./env"
+"use client"
+
+interface ApiResponse<T = any> {
+  data: T
+  message?: string
+  success: boolean
+}
+
+interface ApiError {
+  message: string
+  status: number
+  code?: string
+}
 
 class ApiClient {
-  private client: AxiosInstance
+  private baseURL: string
+  private defaultHeaders: Record<string, string>
 
-  constructor() {
-    this.client = axios.create({
-      baseURL: env.NEXT_PUBLIC_API_URL,
-      timeout: 30000,
-      headers: {
-        "Content-Type": "application/json",
-      },
-    })
+  constructor(baseURL: string = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080") {
+    this.baseURL = baseURL
+    this.defaultHeaders = {
+      "Content-Type": "application/json",
+    }
+  }
 
-    // Request interceptor to add auth token
-    this.client.interceptors.request.use(
-      (config) => {
-        const token = localStorage.getItem("auth_token")
-        if (token) {
-          config.headers.Authorization = `Bearer ${token}`
-        }
-        return config
-      },
-      (error) => Promise.reject(error),
-    )
+  private getAuthToken(): string | null {
+    if (typeof window === "undefined") return null
+    return localStorage.getItem("auth_token")
+  }
 
-    // Response interceptor for error handling
-    this.client.interceptors.response.use(
-      (response) => response,
-      (error: AxiosError) => {
-        if (error.response?.status === 401) {
-          // Clear token and redirect to login
-          localStorage.removeItem("auth_token")
-          localStorage.removeItem("user")
+  private getHeaders(): Record<string, string> {
+    const headers = { ...this.defaultHeaders }
+    const token = this.getAuthToken()
+
+    if (token) {
+      headers.Authorization = `Bearer ${token}`
+    }
+
+    return headers
+  }
+
+  private async handleResponse<T>(response: Response): Promise<ApiResponse<T>> {
+    const contentType = response.headers.get("content-type")
+    const isJson = contentType?.includes("application/json")
+
+    let data: any
+    if (isJson) {
+      data = await response.json()
+    } else {
+      data = await response.text()
+    }
+
+    if (!response.ok) {
+      const error: ApiError = {
+        message: data.message || data.error || `HTTP ${response.status}`,
+        status: response.status,
+        code: data.code,
+      }
+
+      // Handle authentication errors
+      if (response.status === 401) {
+        localStorage.removeItem("auth_token")
+        if (typeof window !== "undefined") {
           window.location.href = "/login"
         }
-        return Promise.reject(error)
-      },
-    )
+      }
+
+      throw error
+    }
+
+    return {
+      data: data.data || data,
+      message: data.message,
+      success: data.success !== false,
+    }
   }
 
-  async get(url: string, config = {}) {
+  async get<T = any>(endpoint: string, params?: Record<string, any>): Promise<ApiResponse<T>> {
+    const url = new URL(endpoint, this.baseURL)
+
+    if (params) {
+      Object.entries(params).forEach(([key, value]) => {
+        if (value !== undefined && value !== null) {
+          url.searchParams.append(key, String(value))
+        }
+      })
+    }
+
+    const response = await fetch(url.toString(), {
+      method: "GET",
+      headers: this.getHeaders(),
+    })
+
+    return this.handleResponse<T>(response)
+  }
+
+  async post<T = any>(endpoint: string, data?: any): Promise<ApiResponse<T>> {
+    const response = await fetch(`${this.baseURL}${endpoint}`, {
+      method: "POST",
+      headers: this.getHeaders(),
+      body: data ? JSON.stringify(data) : undefined,
+    })
+
+    return this.handleResponse<T>(response)
+  }
+
+  async put<T = any>(endpoint: string, data?: any): Promise<ApiResponse<T>> {
+    const response = await fetch(`${this.baseURL}${endpoint}`, {
+      method: "PUT",
+      headers: this.getHeaders(),
+      body: data ? JSON.stringify(data) : undefined,
+    })
+
+    return this.handleResponse<T>(response)
+  }
+
+  async delete<T = any>(endpoint: string, options?: { data?: any }): Promise<ApiResponse<T>> {
+    const response = await fetch(`${this.baseURL}${endpoint}`, {
+      method: "DELETE",
+      headers: this.getHeaders(),
+      body: options?.data ? JSON.stringify(options.data) : undefined,
+    })
+
+    return this.handleResponse<T>(response)
+  }
+
+  // Authentication methods
+  async login(credentials: { username: string; password: string }): Promise<ApiResponse<{ token: string; user: any }>> {
+    const response = await this.post<{ token: string; user: any }>("/api/auth/login", credentials)
+
+    if (response.data.token) {
+      localStorage.setItem("auth_token", response.data.token)
+    }
+
+    return response
+  }
+
+  async logout(): Promise<void> {
     try {
-      const response = await this.client.get(url, config)
-      return response.data
+      await this.post("/api/auth/logout")
     } catch (error) {
-      console.error("API GET Error:", error)
-      throw this.handleError(error)
+      console.error("Logout error:", error)
+    } finally {
+      localStorage.removeItem("auth_token")
     }
   }
 
-  async post(url: string, data = {}, config = {}) {
-    try {
-      const response = await this.client.post(url, data, config)
-      return response.data
-    } catch (error) {
-      console.error("API POST Error:", error)
-      throw this.handleError(error)
+  async refreshToken(): Promise<ApiResponse<{ token: string }>> {
+    const response = await this.post<{ token: string }>("/api/auth/refresh")
+
+    if (response.data.token) {
+      localStorage.setItem("auth_token", response.data.token)
     }
+
+    return response
   }
 
-  async put(url: string, data = {}, config = {}) {
-    try {
-      const response = await this.client.put(url, data, config)
-      return response.data
-    } catch (error) {
-      console.error("API PUT Error:", error)
-      throw this.handleError(error)
-    }
-  }
-
-  async delete(url: string, config = {}) {
-    try {
-      const response = await this.client.delete(url, config)
-      return response.data
-    } catch (error) {
-      console.error("API DELETE Error:", error)
-      throw this.handleError(error)
-    }
-  }
-
-  private handleError(error: any): Error {
-    if (error.response) {
-      // Server responded with error status
-      const message = error.response.data?.message || error.response.data?.error || "Server error"
-      return new Error(`${message} (${error.response.status})`)
-    } else if (error.request) {
-      // Request was made but no response received
-      return new Error("Network error - please check your connection")
-    } else {
-      // Something else happened
-      return new Error(error.message || "Unknown error occurred")
-    }
+  isAuthenticated(): boolean {
+    return !!this.getAuthToken()
   }
 }
 
