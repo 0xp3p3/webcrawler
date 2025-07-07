@@ -4,7 +4,6 @@ import type React from "react"
 
 import { useAuth } from "@/hooks/use-auth"
 import { LoginForm } from "@/components/login-form"
-import { Loader } from "lucide-react"
 
 interface AuthGuardProps {
   children: React.ReactNode
