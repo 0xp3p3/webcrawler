@@ -49,7 +49,7 @@ func (s *URLService) CreateURL(userID, url string) (*models.URLData, error) {
 	return urlData, nil
 }
 
-func (s *URLService) GetURLs(userID string, page, limit int, search string) ([]*models.URLData, int, error) {
+func (s *URLService) GetURLs(userID string, page, limit int, sort string, order string, search string) ([]*models.URLData, int, error) {
 	offset := (page - 1) * limit
 
 	// Build query with search
@@ -74,7 +74,7 @@ func (s *URLService) GetURLs(userID string, page, limit int, search string) ([]*
 	query := fmt.Sprintf(`SELECT id, user_id, url, title, status, html_version, heading_tags,
 						  internal_links, external_links, broken_links, has_login_form,
 						  error_message, analysis_duration, created_at, updated_at
-						  FROM urls %s ORDER BY created_at DESC LIMIT ? OFFSET ?`, whereClause)
+						  FROM urls %s ORDER BY %s %s LIMIT ? OFFSET ?`, whereClause, sort, order)
 
 	args = append(args, limit, offset)
 	rows, err := s.db.Query(query, args...)
@@ -211,7 +211,7 @@ func (s *URLService) performCrawl(urlID string) {
 			Message:   "Crawling failed",
 			Timestamp: time.Now(),
 		})
-		
+
 		s.crawler.UpdateURLStatus(urlID, "error", nil, err.Error())
 		return
 	}

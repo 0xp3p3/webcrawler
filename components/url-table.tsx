@@ -2,7 +2,7 @@
 
 import type React from "react"
 
-import { useState } from "react"
+import { useState, useEffect, useRef } from "react"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Button } from "@/components/ui/button"
@@ -27,7 +27,7 @@ interface URLTableProps {
   loading?: boolean
 }
 
-type SortField = "url" | "title" | "status" | "createdAt" | "internalLinks" | "externalLinks"
+type SortField = "url" | "title" | "status" | "created_at" | "internal_links" | "external_links"
 type SortDirection = "asc" | "desc"
 
 export function URLTable({
@@ -40,11 +40,16 @@ export function URLTable({
   onSortChange,
   loading = false,
 }: URLTableProps) {
-  const [sortField, setSortField] = useState<SortField>("createdAt")
+  const [sortField, setSortField] = useState<SortField>("created_at")
   const [sortDirection, setSortDirection] = useState<SortDirection>("desc")
 
-  console.log(urls, selectedURLs, pagination)
+  const oldSortField = useRef<SortField>("created_at")
+  const oldSortDirection = useRef<SortDirection>("desc")
+
   const handleSort = (field: SortField) => {
+    oldSortField.current = sortField
+    oldSortDirection.current = sortDirection
+
     let newDirection: SortDirection = "asc"
 
     if (sortField === field) {
@@ -52,15 +57,20 @@ export function URLTable({
     } else {
       newDirection = "asc"
     }
+    console.log(oldSortField.current, oldSortDirection.current)
 
     setSortField(field)
     setSortDirection(newDirection)
-
-    // Call the parent component's sort handler for server-side sorting
-    if (onSortChange) {
-      onSortChange(field, newDirection)
-    }
   }
+
+  useEffect(() => {
+    console.log(sortField, sortDirection)
+    if (sortField !== oldSortField.current || sortDirection !== oldSortDirection.current) {
+      if (onSortChange) {
+        onSortChange(sortField, sortDirection);
+      }
+    }
+  }, [sortField, sortDirection]);
 
   const handlePageChange = (page: number) => {
     if (onPageChange) {
@@ -184,14 +194,14 @@ export function URLTable({
                   <SortButton field="status">Status</SortButton>
                 </TableHead>
                 <TableHead>
-                  <SortButton field="internalLinks">Internal Links</SortButton>
+                  <SortButton field="internal_links">Internal Links</SortButton>
                 </TableHead>
                 <TableHead>
-                  <SortButton field="externalLinks">External Links</SortButton>
+                  <SortButton field="external_links">External Links</SortButton>
                 </TableHead>
                 <TableHead>Broken Links</TableHead>
                 <TableHead>
-                  <SortButton field="createdAt">Created</SortButton>
+                  <SortButton field="created_at">Created</SortButton>
                 </TableHead>
                 <TableHead className="w-20">Actions</TableHead>
               </TableRow>

@@ -45,7 +45,7 @@ export function useCrawlData(): UseCrawlDataReturn {
     sort?: string
     order?: "asc" | "desc"
     search?: string
-  }>({ page: 1, limit: 10, sort: "createdAt", order: "desc" })
+  }>({ page: 1, limit: 10, sort: "created_at", order: "desc" })
 
   const fetchURLs = useCallback(
     async (params?: {
@@ -62,9 +62,7 @@ export function useCrawlData(): UseCrawlDataReturn {
         const queryParams = { ...currentParams, ...params }
         setCurrentParams(queryParams)
 
-        const response = await apiClient.get<PaginatedResponse>("/api/urls", queryParams)
-        console.log(response)
-        
+        const response = await apiClient.get<PaginatedResponse>("/api/urls", queryParams)       
         if (response.success && response.data) {
           setUrls(response.data.data || [])
           setPagination(response.data.pagination || null)

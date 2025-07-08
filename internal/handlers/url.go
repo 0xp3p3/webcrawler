@@ -57,6 +57,9 @@ func (h *URLHandler) ListURLs(c *gin.Context) {
 	// Parse query parameters
 	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
 	limit, _ := strconv.Atoi(c.DefaultQuery("limit", "10"))
+	sort := c.DefaultQuery("sort", "created_at")
+	order := c.DefaultQuery("order", "DESC")
+
 	search := c.Query("search")
 
 	if page < 1 {
@@ -66,7 +69,7 @@ func (h *URLHandler) ListURLs(c *gin.Context) {
 		limit = 10
 	}
 
-	urls, total, err := h.urlService.GetURLs(userID.(string), page, limit, search)
+	urls, total, err := h.urlService.GetURLs(userID.(string), page, limit, sort, order, search)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch URLs"})
 		return
