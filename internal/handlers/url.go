@@ -4,10 +4,11 @@ import (
 	"net/http"
 	"strconv"
 
-	"github.com/gin-gonic/gin"
 	"web-crawler/internal/models"
 	"web-crawler/internal/services"
 	"web-crawler/internal/websocket"
+
+	"github.com/gin-gonic/gin"
 )
 
 type URLHandler struct {
@@ -75,12 +76,14 @@ func (h *URLHandler) ListURLs(c *gin.Context) {
 
 	c.JSON(http.StatusOK, gin.H{
 		"success": true,
-		"data":    urls,
-		"pagination": gin.H{
-			"page":       page,
-			"limit":      limit,
-			"total":      total,
-			"totalPages": totalPages,
+		"data": gin.H{
+			"data": urls,
+			"pagination": gin.H{
+				"page":       page,
+				"limit":      limit,
+				"total":      total,
+				"totalPages": totalPages,
+			},
 		},
 	})
 }

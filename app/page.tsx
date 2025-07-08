@@ -24,7 +24,7 @@ function DashboardContent() {
   const [selectedURL, setSelectedURL] = useState<string | null>(null)
 
   const { user, logout } = useAuth()
-  const { urls, loading, error, addURL, updateURLStatus, deleteURLs, rerunAnalysis } = useCrawlData()
+  const { urls, pagination, loading, error, addURL, updateURLStatus, deleteURLs, rerunAnalysis, fetchURLs } = useCrawlData()
   const { connectionStatus, lastMessage, error: wsError, addMessageHandler } = useWebSocket()
 
   // Reliable message handler using the new queue system
@@ -90,17 +90,22 @@ function DashboardContent() {
     }
   }
 
-  const filteredURLs = (Array.isArray(urls) ? urls : []).filter(
-    (url) =>
-      url.url.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      url.title?.toLowerCase().includes(searchQuery.toLowerCase()),
-  )
+  const handlePageChange = (page: number) => {
+    fetchURLs({ page, search: searchQuery })
+  }
 
-  const statusCounts = {
-    queued: (Array.isArray(urls) ? urls : []).filter((u) => u.status === "queued").length,
-    running: (Array.isArray(urls) ? urls : []).filter((u) => u.status === "running").length,
-    completed: (Array.isArray(urls) ? urls : []).filter((u) => u.status === "completed").length,
-    error: (Array.isArray(urls) ? urls : []).filter((u) => u.status === "error").length,
+  const handleSortChange = (field: string, direction: "asc" | "desc") => {
+    fetchURLs({ sort: field, order: direction, search: searchQuery })
+  }
+
+  const handleSearch = () => {
+    fetchURLs({ page: 1, search: searchQuery })
+  }
+
+  const handleSearchKeyPress = (e: React.KeyboardEvent) => {
+    if (e.key === "Enter") {
+      handleSearch()
+    }
   }
 
   if (loading) {
@@ -174,65 +179,6 @@ function DashboardContent() {
           </Alert>
         )}
 
-        {/* Status Overview */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-          <Card className="relative overflow-hidden border-0 bg-gradient-to-br from-yellow-500/10 to-orange-500/10 backdrop-blur-sm">
-            <div className="absolute inset-0 bg-gradient-to-br from-yellow-500/5 to-orange-500/5"></div>
-            <CardHeader className="pb-3 relative">
-              <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
-                <div className="w-2 h-2 rounded-full bg-yellow-500"></div>
-                Queued
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="relative">
-              <div className="text-3xl font-bold text-yellow-600">{statusCounts.queued}</div>
-              <p className="text-xs text-muted-foreground mt-1">Waiting to process</p>
-            </CardContent>
-          </Card>
-
-          <Card className="relative overflow-hidden border-0 bg-gradient-to-br from-blue-500/10 to-cyan-500/10 backdrop-blur-sm">
-            <div className="absolute inset-0 bg-gradient-to-br from-blue-500/5 to-cyan-500/5"></div>
-            <CardHeader className="pb-3 relative">
-              <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
-                <div className="w-2 h-2 rounded-full bg-blue-500 animate-pulse"></div>
-                Running
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="relative">
-              <div className="text-3xl font-bold text-blue-600">{statusCounts.running}</div>
-              <p className="text-xs text-muted-foreground mt-1">Currently processing</p>
-            </CardContent>
-          </Card>
-
-          <Card className="relative overflow-hidden border-0 bg-gradient-to-br from-green-500/10 to-emerald-500/10 backdrop-blur-sm">
-            <div className="absolute inset-0 bg-gradient-to-br from-green-500/5 to-emerald-500/5"></div>
-            <CardHeader className="pb-3 relative">
-              <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
-                <CheckCircle className="w-4 h-4 text-green-500" />
-                Completed
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="relative">
-              <div className="text-3xl font-bold text-green-600">{statusCounts.completed}</div>
-              <p className="text-xs text-muted-foreground mt-1">Successfully analyzed</p>
-            </CardContent>
-          </Card>
-
-          <Card className="relative overflow-hidden border-0 bg-gradient-to-br from-red-500/10 to-rose-500/10 backdrop-blur-sm">
-            <div className="absolute inset-0 bg-gradient-to-br from-red-500/5 to-rose-500/5"></div>
-            <CardHeader className="pb-3 relative">
-              <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
-                <AlertCircle className="w-4 h-4 text-red-500" />
-                Errors
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="relative">
-              <div className="text-3xl font-bold text-red-600">{statusCounts.error}</div>
-              <p className="text-xs text-muted-foreground mt-1">Failed to process</p>
-            </CardContent>
-          </Card>
-        </div>
-
         {/* Controls */}
         <Card className="border-0 bg-card/50 backdrop-blur-sm shadow-xl">
           <CardHeader>
@@ -249,11 +195,20 @@ function DashboardContent() {
                 <Input
                   placeholder="Search URLs or titles..."
                   value={searchQuery}
+                  onKeyPress={handleSearchKeyPress}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   className="pl-10 bg-background/50 backdrop-blur-sm border-primary/20 focus:border-primary/50 transition-colors"
                 />
               </div>
               <div className="flex gap-2">
+                <Button
+                  variant="outline"
+                  onClick={handleSearch}
+                  className="hover:bg-primary/10 hover:text-primary hover:border-primary/50 transition-colors bg-transparent"
+                >
+                  <Search className="w-4 h-4 mr-2" />
+                  Search
+                </Button>
                 <Button
                   variant="outline"
                   onClick={handleBulkRerun}
@@ -279,10 +234,14 @@ function DashboardContent() {
 
         {/* URL Table */}
         <URLTable
-          urls={filteredURLs}
+          urls={urls}
           selectedURLs={selectedURLs}
           onSelectionChange={setSelectedURLs}
           onViewDetails={setSelectedURL}
+          pagination={pagination}
+          onPageChange={handlePageChange}
+          onSortChange={handleSortChange}
+          loading={loading}
         />
 
         {/* Add URL Dialog */}
