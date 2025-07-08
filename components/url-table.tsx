@@ -1,34 +1,25 @@
 "use client"
-
-import type React from "react"
-
-import { useState, useEffect, useRef } from "react"
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
-import { Checkbox } from "@/components/ui/checkbox"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { ChevronLeft, ChevronRight, Eye, ArrowUpDown, Globe } from "lucide-react"
-import type { URLData } from "@/types/crawler"
+import { Checkbox } from "@/components/ui/checkbox"
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
+import { Eye, ArrowUpDown, ArrowUp, ArrowDown, ChevronLeft, ChevronRight } from "lucide-react"
+import { formatDistanceToNow } from "date-fns"
+import type { CrawlURL, PaginationInfo } from "@/types/crawler"
 
 interface URLTableProps {
-  urls: URLData[]
+  urls: CrawlURL[]
   selectedURLs: string[]
-  onSelectionChange: (selected: string[]) => void
+  onSelectionChange: (selectedIds: string[]) => void
   onViewDetails: (urlId: string) => void
-  pagination?: {
-    page: number
-    limit: number
-    total: number
-    totalPages: number
-  }
+  pagination?: PaginationInfo
   onPageChange?: (page: number) => void
   onSortChange?: (field: string, direction: "asc" | "desc") => void
+  sortField?: string
+  sortDirection?: "asc" | "desc"
   loading?: boolean
 }
-
-type SortField = "url" | "title" | "status" | "created_at" | "internal_links" | "external_links"
-type SortDirection = "asc" | "desc"
 
 export function URLTable({
   urls,
@@ -38,46 +29,10 @@ export function URLTable({
   pagination,
   onPageChange,
   onSortChange,
+  sortField = "created_at",
+  sortDirection = "desc",
   loading = false,
 }: URLTableProps) {
-  const [sortField, setSortField] = useState<SortField>("created_at")
-  const [sortDirection, setSortDirection] = useState<SortDirection>("desc")
-
-  const oldSortField = useRef<SortField>("created_at")
-  const oldSortDirection = useRef<SortDirection>("desc")
-
-  const handleSort = (field: SortField) => {
-    oldSortField.current = sortField
-    oldSortDirection.current = sortDirection
-
-    let newDirection: SortDirection = "asc"
-
-    if (sortField === field) {
-      newDirection = sortDirection === "asc" ? "desc" : "asc"
-    } else {
-      newDirection = "asc"
-    }
-    console.log(oldSortField.current, oldSortDirection.current)
-
-    setSortField(field)
-    setSortDirection(newDirection)
-  }
-
-  useEffect(() => {
-    console.log(sortField, sortDirection)
-    if (sortField !== oldSortField.current || sortDirection !== oldSortDirection.current) {
-      if (onSortChange) {
-        onSortChange(sortField, sortDirection);
-      }
-    }
-  }, [sortField, sortDirection]);
-
-  const handlePageChange = (page: number) => {
-    if (onPageChange) {
-      onPageChange(page)
-    }
-  }
-
   const handleSelectAll = (checked: boolean) => {
     if (checked) {
       onSelectionChange(urls.map((url) => url.id))
@@ -94,202 +49,181 @@ export function URLTable({
     }
   }
 
-  const getStatusBadge = (status: URLData["status"]) => {
-    const statusConfig = {
-      queued: {
-        variant: "secondary" as const,
-        className: "bg-gradient-to-r from-yellow-100 to-orange-100 text-yellow-800 border-yellow-200",
-        text: "Queued",
-      },
-      running: {
-        variant: "default" as const,
-        className: "bg-gradient-to-r from-blue-100 to-cyan-100 text-blue-800 border-blue-200 animate-pulse",
-        text: "Running",
-      },
-      completed: {
-        variant: "default" as const,
-        className: "bg-gradient-to-r from-green-100 to-emerald-100 text-green-800 border-green-200",
-        text: "Completed",
-      },
-      error: {
-        variant: "destructive" as const,
-        className: "bg-gradient-to-r from-red-100 to-rose-100 text-red-800 border-red-200",
-        text: "Error",
-      },
+  const handleSort = (field: string) => {
+    if (!onSortChange) return
+
+    let newDirection: "asc" | "desc" = "asc"
+    if (sortField === field && sortDirection === "asc") {
+      newDirection = "desc"
     }
+    onSortChange(field, newDirection)
+  }
 
-    const config = statusConfig[status]
-
-    return (
-      <Badge variant={config.variant} className={config.className}>
-        {config.text}
-      </Badge>
+  const getSortIcon = (field: string) => {
+    if (sortField !== field) {
+      return <ArrowUpDown className="w-4 h-4 ml-1 opacity-50" />
+    }
+    return sortDirection === "asc" ? (
+      <ArrowUp className="w-4 h-4 ml-1 text-primary" />
+    ) : (
+      <ArrowDown className="w-4 h-4 ml-1 text-primary" />
     )
   }
 
-  const SortButton = ({ field, children }: { field: SortField; children: React.ReactNode }) => {
-    const isActive = sortField === field
+  const getStatusBadge = (status: string) => {
+    const statusConfig = {
+      queued: { variant: "secondary" as const, className: "bg-yellow-100 text-yellow-800 border-yellow-300" },
+      running: { variant: "default" as const, className: "bg-blue-100 text-blue-800 border-blue-300 animate-pulse" },
+      completed: { variant: "default" as const, className: "bg-green-100 text-green-800 border-green-300" },
+      error: { variant: "destructive" as const, className: "bg-red-100 text-red-800 border-red-300" },
+    }
+
+    const config = statusConfig[status as keyof typeof statusConfig] || statusConfig.queued
 
     return (
-      <Button
-        variant="ghost"
-        size="sm"
-        onClick={() => handleSort(field)}
-        className={`h-auto p-0 font-medium hover:text-primary transition-colors ${isActive ? "text-primary" : ""}`}
-      >
-        {children}
-        <ArrowUpDown className={`ml-2 h-4 w-4 ${isActive ? "text-primary" : ""}`} />
-      </Button>
+      <Badge variant={config.variant} className={config.className}>
+        {status}
+      </Badge>
     )
   }
 
   const formatDate = (dateString: string) => {
     try {
-      return new Date(dateString).toLocaleDateString("en-US", {
-        year: "numeric",
-        month: "short",
-        day: "numeric",
-        hour: "2-digit",
-        minute: "2-digit",
-      })
+      return formatDistanceToNow(new Date(dateString), { addSuffix: true })
     } catch {
-      return "Invalid Date"
+      return "Unknown"
     }
   }
 
-  const currentPage = pagination?.page || 1
-  const totalPages = pagination?.totalPages || 1
-  const total = pagination?.total || urls.length
-  const limit = pagination?.limit || 10
-  const startIndex = (currentPage - 1) * limit + 1
-  const endIndex = Math.min(currentPage * limit, total)
+  const isAllSelected = urls.length > 0 && selectedURLs.length === urls.length
+  const isIndeterminate = selectedURLs.length > 0 && selectedURLs.length < urls.length
 
   return (
-    <Card className="border-0 bg-card/50 backdrop-blur-sm shadow-xl overflow-hidden">
-      <CardHeader className="bg-gradient-to-r from-primary/5 to-purple-600/5 border-b border-primary/10">
-        <CardTitle className="flex items-center gap-2">
-          <Globe className="w-5 h-5 text-primary" />
-          Crawled URLs ({total})
+    <Card className="border-0 bg-card/50 backdrop-blur-sm shadow-xl">
+      <CardHeader>
+        <CardTitle className="flex items-center justify-between">
+          <span>URLs ({pagination?.total || urls.length})</span>
+          {pagination && (
+            <div className="flex items-center gap-2 text-sm text-muted-foreground">
+              <span>
+                Page {pagination.page} of {pagination.pages}
+              </span>
+            </div>
+          )}
         </CardTitle>
       </CardHeader>
-      <CardContent className="p-0">
-        <div className="border border-primary/10 bg-background/50 backdrop-blur-sm overflow-hidden">
+      <CardContent>
+        <div className="rounded-lg border border-border/50 bg-background/30 backdrop-blur-sm overflow-hidden">
           <Table>
-            <TableHeader className="bg-gradient-to-r from-primary/5 to-purple-600/5">
-              <TableRow>
+            <TableHeader>
+              <TableRow className="border-border/50 hover:bg-muted/30">
                 <TableHead className="w-12">
                   <Checkbox
-                    checked={urls.length > 0 && urls.every((url) => selectedURLs.includes(url.id))}
+                    checked={isAllSelected}
                     onCheckedChange={handleSelectAll}
-                    disabled={loading}
+                    aria-label="Select all URLs"
+                    className="data-[state=checked]:bg-primary data-[state=checked]:border-primary"
+                    {...(isIndeterminate && { "data-state": "indeterminate" })}
                   />
                 </TableHead>
                 <TableHead>
-                  <SortButton field="url">URL</SortButton>
+                  <Button
+                    variant="ghost"
+                    onClick={() => handleSort("url")}
+                    className="h-auto p-0 font-semibold hover:bg-transparent hover:text-primary transition-colors"
+                  >
+                    URL
+                    {getSortIcon("url")}
+                  </Button>
                 </TableHead>
                 <TableHead>
-                  <SortButton field="title">Title</SortButton>
+                  <Button
+                    variant="ghost"
+                    onClick={() => handleSort("title")}
+                    className="h-auto p-0 font-semibold hover:bg-transparent hover:text-primary transition-colors"
+                  >
+                    Title
+                    {getSortIcon("title")}
+                  </Button>
                 </TableHead>
                 <TableHead>
-                  <SortButton field="status">Status</SortButton>
+                  <Button
+                    variant="ghost"
+                    onClick={() => handleSort("status")}
+                    className="h-auto p-0 font-semibold hover:bg-transparent hover:text-primary transition-colors"
+                  >
+                    Status
+                    {getSortIcon("status")}
+                  </Button>
                 </TableHead>
                 <TableHead>
-                  <SortButton field="internal_links">Internal Links</SortButton>
+                  <Button
+                    variant="ghost"
+                    onClick={() => handleSort("created_at")}
+                    className="h-auto p-0 font-semibold hover:bg-transparent hover:text-primary transition-colors"
+                  >
+                    Created
+                    {getSortIcon("created_at")}
+                  </Button>
                 </TableHead>
                 <TableHead>
-                  <SortButton field="external_links">External Links</SortButton>
-                </TableHead>
-                <TableHead>Broken Links</TableHead>
-                <TableHead>
-                  <SortButton field="created_at">Created</SortButton>
+                  <Button
+                    variant="ghost"
+                    onClick={() => handleSort("updated_at")}
+                    className="h-auto p-0 font-semibold hover:bg-transparent hover:text-primary transition-colors"
+                  >
+                    Updated
+                    {getSortIcon("updated_at")}
+                  </Button>
                 </TableHead>
                 <TableHead className="w-20">Actions</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {loading ? (
-                // Loading skeleton rows
-                Array.from({ length: 5 }).map((_, index) => (
-                  <TableRow key={`loading-${index}`}>
-                    <TableCell>
-                      <div className="w-4 h-4 bg-muted animate-pulse rounded"></div>
-                    </TableCell>
-                    <TableCell>
-                      <div className="w-32 h-4 bg-muted animate-pulse rounded"></div>
-                    </TableCell>
-                    <TableCell>
-                      <div className="w-24 h-4 bg-muted animate-pulse rounded"></div>
-                    </TableCell>
-                    <TableCell>
-                      <div className="w-16 h-6 bg-muted animate-pulse rounded"></div>
-                    </TableCell>
-                    <TableCell>
-                      <div className="w-8 h-4 bg-muted animate-pulse rounded"></div>
-                    </TableCell>
-                    <TableCell>
-                      <div className="w-8 h-4 bg-muted animate-pulse rounded"></div>
-                    </TableCell>
-                    <TableCell>
-                      <div className="w-8 h-4 bg-muted animate-pulse rounded"></div>
-                    </TableCell>
-                    <TableCell>
-                      <div className="w-20 h-4 bg-muted animate-pulse rounded"></div>
-                    </TableCell>
-                    <TableCell>
-                      <div className="w-8 h-8 bg-muted animate-pulse rounded"></div>
-                    </TableCell>
-                  </TableRow>
-                ))
+                <TableRow>
+                  <TableCell colSpan={7} className="text-center py-8">
+                    <div className="flex items-center justify-center space-x-2">
+                      <div className="w-4 h-4 rounded-full bg-primary animate-pulse"></div>
+                      <span className="text-muted-foreground">Loading...</span>
+                    </div>
+                  </TableCell>
+                </TableRow>
               ) : urls.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={9} className="text-center py-8 text-muted-foreground">
-                    No URLs found. Add some URLs to get started.
+                  <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
+                    No URLs found. Add a URL to get started.
                   </TableCell>
                 </TableRow>
               ) : (
                 urls.map((url) => (
-                  <TableRow key={url.id} className="hover:bg-muted/50 transition-colors">
+                  <TableRow key={url.id} className="border-border/50 hover:bg-muted/20 transition-colors">
                     <TableCell>
                       <Checkbox
                         checked={selectedURLs.includes(url.id)}
                         onCheckedChange={(checked) => handleSelectURL(url.id, checked as boolean)}
+                        aria-label={`Select ${url.url}`}
+                        className="data-[state=checked]:bg-primary data-[state=checked]:border-primary"
                       />
                     </TableCell>
                     <TableCell className="max-w-xs">
-                      <div className="truncate" title={url.url}>
-                        <span className="text-sm font-mono">{url.url}</span>
+                      <div className="truncate font-medium text-foreground" title={url.url}>
+                        {url.url}
                       </div>
                     </TableCell>
                     <TableCell className="max-w-xs">
-                      <div className="truncate" title={url.title || "N/A"}>
-                        {url.title || <span className="text-muted-foreground italic">No title</span>}
+                      <div className="truncate text-muted-foreground" title={url.title || "No title"}>
+                        {url.title || "No title"}
                       </div>
                     </TableCell>
                     <TableCell>{getStatusBadge(url.status)}</TableCell>
-                    <TableCell>
-                      <span className="font-medium">{url.internalLinks || 0}</span>
-                    </TableCell>
-                    <TableCell>
-                      <span className="font-medium">{url.externalLinks || 0}</span>
-                    </TableCell>
-                    <TableCell>
-                      {url.brokenLinks && url.brokenLinks.length > 0 ? (
-                        <Badge variant="destructive" className="bg-red-100 text-red-800">
-                          {url.brokenLinks.length}
-                        </Badge>
-                      ) : (
-                        <span className="text-muted-foreground">0</span>
-                      )}
-                    </TableCell>
-                    <TableCell>
-                      <span className="text-sm text-muted-foreground">{formatDate(url.createdAt)}</span>
-                    </TableCell>
+                    <TableCell className="text-muted-foreground text-sm">{formatDate(url.created_at)}</TableCell>
+                    <TableCell className="text-muted-foreground text-sm">{formatDate(url.updated_at)}</TableCell>
                     <TableCell>
                       <Button
                         variant="ghost"
                         size="sm"
                         onClick={() => onViewDetails(url.id)}
-                        disabled={url.status !== "completed"}
                         className="hover:bg-primary/10 hover:text-primary transition-colors"
                       >
                         <Eye className="w-4 h-4" />
@@ -303,48 +237,47 @@ export function URLTable({
         </div>
 
         {/* Pagination */}
-        {totalPages > 1 && (
-          <div className="flex items-center justify-between p-4 border-t border-primary/10 bg-gradient-to-r from-primary/5 to-purple-600/5">
+        {pagination && pagination.pages > 1 && (
+          <div className="flex items-center justify-between mt-6">
             <div className="text-sm text-muted-foreground">
-              Showing {startIndex} to {endIndex} of {total} results
+              Showing {(pagination.page - 1) * pagination.limit + 1} to{" "}
+              {Math.min(pagination.page * pagination.limit, pagination.total)} of {pagination.total} results
             </div>
-            <div className="flex items-center gap-2">
+            <div className="flex items-center space-x-2">
               <Button
                 variant="outline"
                 size="sm"
-                onClick={() => handlePageChange(currentPage - 1)}
-                disabled={currentPage === 1 || loading}
-                className="hover:bg-primary/10 hover:text-primary hover:border-primary/50 transition-colors"
+                onClick={() => onPageChange?.(pagination.page - 1)}
+                disabled={pagination.page <= 1}
+                className="hover:bg-primary/10 hover:text-primary hover:border-primary/50 transition-colors bg-transparent"
               >
-                <ChevronLeft className="w-4 h-4" />
+                <ChevronLeft className="w-4 h-4 mr-1" />
                 Previous
               </Button>
 
-              {/* Page numbers */}
-              <div className="flex items-center gap-1">
-                {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+              <div className="flex items-center space-x-1">
+                {Array.from({ length: Math.min(5, pagination.pages) }, (_, i) => {
                   let pageNum: number
-                  if (totalPages <= 5) {
+                  if (pagination.pages <= 5) {
                     pageNum = i + 1
-                  } else if (currentPage <= 3) {
+                  } else if (pagination.page <= 3) {
                     pageNum = i + 1
-                  } else if (currentPage >= totalPages - 2) {
-                    pageNum = totalPages - 4 + i
+                  } else if (pagination.page >= pagination.pages - 2) {
+                    pageNum = pagination.pages - 4 + i
                   } else {
-                    pageNum = currentPage - 2 + i
+                    pageNum = pagination.page - 2 + i
                   }
 
                   return (
                     <Button
                       key={pageNum}
-                      variant={currentPage === pageNum ? "default" : "outline"}
+                      variant={pagination.page === pageNum ? "default" : "outline"}
                       size="sm"
-                      onClick={() => handlePageChange(pageNum)}
-                      disabled={loading}
+                      onClick={() => onPageChange?.(pageNum)}
                       className={
-                        currentPage === pageNum
-                          ? "bg-primary text-primary-foreground"
-                          : "hover:bg-primary/10 hover:text-primary hover:border-primary/50 transition-colors"
+                        pagination.page === pageNum
+                          ? "bg-gradient-to-r from-primary to-purple-600 hover:from-primary/90 hover:to-purple-700"
+                          : "hover:bg-primary/10 hover:text-primary hover:border-primary/50 transition-colors bg-transparent"
                       }
                     >
                       {pageNum}
@@ -356,12 +289,12 @@ export function URLTable({
               <Button
                 variant="outline"
                 size="sm"
-                onClick={() => handlePageChange(currentPage + 1)}
-                disabled={currentPage === totalPages || loading}
-                className="hover:bg-primary/10 hover:text-primary hover:border-primary/50 transition-colors"
+                onClick={() => onPageChange?.(pagination.page + 1)}
+                disabled={pagination.page >= pagination.pages}
+                className="hover:bg-primary/10 hover:text-primary hover:border-primary/50 transition-colors bg-transparent"
               >
                 Next
-                <ChevronRight className="w-4 h-4" />
+                <ChevronRight className="w-4 h-4 ml-1" />
               </Button>
             </div>
           </div>

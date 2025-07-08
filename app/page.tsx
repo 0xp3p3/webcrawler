@@ -1,12 +1,14 @@
 "use client"
 
+import type React from "react"
+
 import { useState, useEffect, useCallback } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
 import { Alert, AlertDescription } from "@/components/ui/alert"
-import { Plus, Trash2, RefreshCw, Search, LogOut, Activity, Globe, AlertCircle, CheckCircle } from "lucide-react"
+import { Plus, Trash2, RefreshCw, Search, LogOut, Activity, Globe, AlertCircle } from "lucide-react"
 import { URLTable } from "@/components/url-table"
 import { URLDetails } from "@/components/url-details"
 import { AddURLDialog } from "@/components/add-url-dialog"
@@ -22,9 +24,12 @@ function DashboardContent() {
   const [searchQuery, setSearchQuery] = useState("")
   const [showAddDialog, setShowAddDialog] = useState(false)
   const [selectedURL, setSelectedURL] = useState<string | null>(null)
+  const [sortField, setSortField] = useState<string>("created_at")
+  const [sortDirection, setSortDirection] = useState<"asc" | "desc">("desc")
 
   const { user, logout } = useAuth()
-  const { urls, pagination, loading, error, addURL, updateURLStatus, deleteURLs, rerunAnalysis, fetchURLs } = useCrawlData()
+  const { urls, pagination, loading, error, addURL, updateURLStatus, deleteURLs, rerunAnalysis, fetchURLs } =
+    useCrawlData()
   const { connectionStatus, lastMessage, error: wsError, addMessageHandler } = useWebSocket()
 
   // Reliable message handler using the new queue system
@@ -91,15 +96,17 @@ function DashboardContent() {
   }
 
   const handlePageChange = (page: number) => {
-    fetchURLs({ page, search: searchQuery })
+    fetchURLs({ page, search: searchQuery, sort: sortField, order: sortDirection })
   }
 
   const handleSortChange = (field: string, direction: "asc" | "desc") => {
-    fetchURLs({ sort: field, order: direction, search: searchQuery })
+    setSortField(field)
+    setSortDirection(direction)
+    fetchURLs({ sort: field, order: direction, search: searchQuery, page: 1 })
   }
 
   const handleSearch = () => {
-    fetchURLs({ page: 1, search: searchQuery })
+    fetchURLs({ page: 1, search: searchQuery, sort: sortField, order: sortDirection })
   }
 
   const handleSearchKeyPress = (e: React.KeyboardEvent) => {
@@ -241,6 +248,8 @@ function DashboardContent() {
           pagination={pagination}
           onPageChange={handlePageChange}
           onSortChange={handleSortChange}
+          sortField={sortField}
+          sortDirection={sortDirection}
           loading={loading}
         />
 
