@@ -106,7 +106,7 @@ export function URLTable({
           {pagination && (
             <div className="flex items-center gap-2 text-sm text-muted-foreground">
               <span>
-                Page {pagination.page} of {pagination.pages}
+                Page {pagination.page} of {pagination.totalPages}
               </span>
             </div>
           )}
@@ -237,7 +237,7 @@ export function URLTable({
         </div>
 
         {/* Pagination */}
-        {pagination && pagination.pages > 1 && (
+        {pagination && pagination.totalPages > 1 && (
           <div className="flex items-center justify-between mt-6">
             <div className="text-sm text-muted-foreground">
               Showing {(pagination.page - 1) * pagination.limit + 1} to{" "}
@@ -256,14 +256,14 @@ export function URLTable({
               </Button>
 
               <div className="flex items-center space-x-1">
-                {Array.from({ length: Math.min(5, pagination.pages) }, (_, i) => {
+                {Array.from({ length: Math.min(5, pagination.totalPages) }, (_, i) => {
                   let pageNum: number
-                  if (pagination.pages <= 5) {
+                  if (pagination.totalPages <= 5) {
                     pageNum = i + 1
                   } else if (pagination.page <= 3) {
                     pageNum = i + 1
-                  } else if (pagination.page >= pagination.pages - 2) {
-                    pageNum = pagination.pages - 4 + i
+                  } else if (pagination.page >= pagination.totalPages - 2) {
+                    pageNum = pagination.totalPages - 4 + i
                   } else {
                     pageNum = pagination.page - 2 + i
                   }
@@ -290,7 +290,7 @@ export function URLTable({
                 variant="outline"
                 size="sm"
                 onClick={() => onPageChange?.(pagination.page + 1)}
-                disabled={pagination.page >= pagination.pages}
+                disabled={pagination.page >= pagination.totalPages}
                 className="hover:bg-primary/10 hover:text-primary hover:border-primary/50 transition-colors bg-transparent"
               >
                 Next
