@@ -78,6 +78,8 @@ export function useAuth() {
         error: errorMessage,
       }))
       throw error
+    } finally {
+      window.location.href = "/"
     }
   }, [])
 
@@ -93,6 +95,7 @@ export function useAuth() {
         isLoading: false,
         error: null,
       })
+      window.location.href = "/"
     }
   }, [])
 

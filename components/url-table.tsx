@@ -117,8 +117,8 @@ export function URLTable({ urls, selectedURLs, onSelectionChange, onViewDetails 
           Crawled URLs ({urls.length})
         </CardTitle>
       </CardHeader>
-      <CardContent>
-        <div className="rounded-lg border border-primary/10 bg-background/50 backdrop-blur-sm overflow-hidden">
+      <CardContent className="p-0">
+        <div className="border border-primary/10 bg-background/50 backdrop-blur-sm overflow-hidden">
           <Table>
             <TableHeader className="bg-gradient-to-r from-primary/5 to-purple-600/5">
               <TableRow>
