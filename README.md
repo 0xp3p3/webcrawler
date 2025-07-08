@@ -227,3 +227,9 @@ curl -X POST http://localhost:8080/api/urls \
   -H "Authorization: Bearer YOUR_JWT_TOKEN" \
   -d '{"url": "https://example.com"}'
 ```
+
+![Dashboard](https://github.com/0xp3p3/webcrawler/blob/a07e670be594f308157a3bdbec788a2256d174ff/public/assets/dashboard.png?raw=true)
+
+![URL Details](https://github.com/0xp3p3/webcrawler/blob/a07e670be594f308157a3bdbec788a2256d174ff/public/assets/details-0.png?raw=true)
+
+![URL Details](https://github.com/0xp3p3/webcrawler/blob/a07e670be594f308157a3bdbec788a2256d174ff/public/assets/details-1.png?raw=true)
