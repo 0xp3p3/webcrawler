@@ -115,9 +115,8 @@ cd ..  # from backend directory
 
 2. **Install dependencies**
 ```bash
-npm install
-# or
-yarn install
+npm install pnpm -g
+pnpm install
 ```
 
 3. **Configure environment variables**
@@ -125,14 +124,16 @@ yarn install
 # Create .env.local file
 cat > .env.local << EOF
 NEXT_PUBLIC_API_URL=http://localhost:8080
+NEXT_PUBLIC_WS_URL=ws://localhost:8080/ws
 EOF
 ```
 
 4. **Run the frontend**
 ```bash
-npm run dev
-# or
-yarn dev
+pnpm run dev
+# or build
+pnpm run build
+pnpm run start
 ```
 
 5. **Access the application**
