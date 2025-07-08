@@ -35,10 +35,12 @@ export function LoginForm() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-background">
-      <Card className="w-full max-w-md">
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-background via-background to-primary/5">
+      <Card className="w-full max-w-md border-0 bg-card/50 backdrop-blur-sm shadow-2xl">
         <CardHeader className="text-center">
-          <CardTitle className="text-2xl">Sign In</CardTitle>
+          <CardTitle className="text-3xl bg-gradient-to-r from-primary to-purple-600 bg-clip-text text-transparent">
+            Sign In
+          </CardTitle>
           <CardDescription>Enter your credentials to access the Web Crawler Dashboard</CardDescription>
         </CardHeader>
         <CardContent>
@@ -59,6 +61,7 @@ export function LoginForm() {
                 onChange={handleInputChange("username")}
                 disabled={isLoading}
                 required
+                className="bg-background/50 backdrop-blur-sm border-primary/20 focus:border-primary/50 transition-colors"
               />
             </div>
 
@@ -87,7 +90,11 @@ export function LoginForm() {
               </div>
             </div>
 
-            <Button type="submit" className="w-full" disabled={isLoading}>
+            <Button
+              type="submit"
+              className="w-full bg-gradient-to-r from-primary to-purple-600 hover:from-primary/90 hover:to-purple-700 shadow-lg hover:shadow-xl transition-all duration-200"
+              disabled={isLoading}
+            >
               {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
               Sign In
             </Button>

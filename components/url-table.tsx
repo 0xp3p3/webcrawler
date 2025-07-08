@@ -1,224 +1,235 @@
 "use client"
 
+import type React from "react"
+
 import { useState } from "react"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
-import { Badge } from "@/components/ui/badge"
+import { Checkbox } from "@/components/ui/checkbox"
 import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Card, CardContent } from "@/components/ui/card"
-import { Globe, Search, CheckCircle, XCircle, Loader2, AlertCircle, ExternalLink, Calendar } from "lucide-react"
-import type { CrawlResult } from "@/types/crawler"
+import { Badge } from "@/components/ui/badge"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { ChevronLeft, ChevronRight, Eye, ArrowUpDown, Globe } from "lucide-react"
+import type { URLData } from "@/types/crawler"
 
-interface UrlTableProps {
-  data: CrawlResult[]
-  onRowClick: (url: CrawlResult) => void
-  loading?: boolean
+interface URLTableProps {
+  urls: URLData[]
+  selectedURLs: string[]
+  onSelectionChange: (selected: string[]) => void
+  onViewDetails: (urlId: string) => void
 }
 
-export function UrlTable({ data, onRowClick, loading }: UrlTableProps) {
-  const [searchTerm, setSearchTerm] = useState("")
-  const [statusFilter, setStatusFilter] = useState<string>("all")
+type SortField = "url" | "title" | "status" | "createdAt" | "internalLinks" | "externalLinks"
+type SortDirection = "asc" | "desc"
 
-  const filteredData = data.filter((item) => {
-    const matchesSearch =
-      item.url.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      (item.title && item.title.toLowerCase().includes(searchTerm.toLowerCase()))
-    const matchesStatus = statusFilter === "all" || item.status === statusFilter
-    return matchesSearch && matchesStatus
+export function URLTable({ urls, selectedURLs, onSelectionChange, onViewDetails }: URLTableProps) {
+  const [currentPage, setCurrentPage] = useState(1)
+  const [sortField, setSortField] = useState<SortField>("createdAt")
+  const [sortDirection, setSortDirection] = useState<SortDirection>("desc")
+  const itemsPerPage = 10
+
+  const handleSort = (field: SortField) => {
+    if (sortField === field) {
+      setSortDirection(sortDirection === "asc" ? "desc" : "asc")
+    } else {
+      setSortField(field)
+      setSortDirection("asc")
+    }
+  }
+
+  const sortedURLs = [...urls].sort((a, b) => {
+    let aValue: any = a[sortField]
+    let bValue: any = b[sortField]
+
+    if (sortField === "createdAt") {
+      aValue = new Date(aValue).getTime()
+      bValue = new Date(bValue).getTime()
+    }
+
+    if (typeof aValue === "string") {
+      aValue = aValue.toLowerCase()
+      bValue = bValue.toLowerCase()
+    }
+
+    if (aValue < bValue) return sortDirection === "asc" ? -1 : 1
+    if (aValue > bValue) return sortDirection === "asc" ? 1 : -1
+    return 0
   })
 
-  const getStatusIcon = (status: string) => {
-    switch (status) {
-      case "completed":
-        return <CheckCircle className="h-4 w-4 text-emerald-500" />
-      case "failed":
-        return <XCircle className="h-4 w-4 text-red-500" />
-      case "crawling":
-        return <Loader2 className="h-4 w-4 text-blue-500 animate-spin" />
-      default:
-        return <AlertCircle className="h-4 w-4 text-amber-500" />
+  const totalPages = Math.ceil(sortedURLs.length / itemsPerPage)
+  const startIndex = (currentPage - 1) * itemsPerPage
+  const paginatedURLs = sortedURLs.slice(startIndex, startIndex + itemsPerPage)
+
+  const handleSelectAll = (checked: boolean) => {
+    if (checked) {
+      onSelectionChange(paginatedURLs.map((url) => url.id))
+    } else {
+      onSelectionChange([])
     }
   }
 
-  const getStatusBadge = (status: string) => {
-    switch (status) {
-      case "completed":
-        return <Badge className="status-indicator status-success">Completed</Badge>
-      case "failed":
-        return <Badge className="status-indicator status-error">Failed</Badge>
-      case "crawling":
-        return <Badge className="status-indicator status-crawling">Crawling</Badge>
-      default:
-        return <Badge className="status-indicator status-pending">Pending</Badge>
+  const handleSelectURL = (urlId: string, checked: boolean) => {
+    if (checked) {
+      onSelectionChange([...selectedURLs, urlId])
+    } else {
+      onSelectionChange(selectedURLs.filter((id) => id !== urlId))
     }
   }
 
-  const formatDate = (dateString: string) => {
-    if (!dateString) return "N/A"
-    return new Date(dateString).toLocaleDateString("en-US", {
-      month: "short",
-      day: "numeric",
-      hour: "2-digit",
-      minute: "2-digit",
-    })
-  }
+  const getStatusBadge = (status: URLData["status"]) => {
+    const variants = {
+      queued: "secondary",
+      running: "default",
+      completed: "default",
+      error: "destructive",
+    } as const
 
-  if (loading) {
+    const colors = {
+      queued: "bg-yellow-100 text-yellow-800",
+      running: "bg-blue-100 text-blue-800",
+      completed: "bg-green-100 text-green-800",
+      error: "bg-red-100 text-red-800",
+    }
+
     return (
-      <Card className="glass-effect border-0">
-        <CardContent className="flex items-center justify-center py-12">
-          <div className="flex items-center gap-3">
-            <Loader2 className="h-6 w-6 animate-spin text-primary" />
-            <span className="text-lg font-medium">Loading URLs...</span>
-          </div>
-        </CardContent>
-      </Card>
+      <Badge variant={variants[status]} className={colors[status]}>
+        {status.charAt(0).toUpperCase() + status.slice(1)}
+      </Badge>
     )
   }
 
+  const SortButton = ({ field, children }: { field: SortField; children: React.ReactNode }) => (
+    <Button
+      variant="ghost"
+      size="sm"
+      onClick={() => handleSort(field)}
+      className="h-auto p-0 font-medium hover:text-primary transition-colors"
+    >
+      {children}
+      <ArrowUpDown className="ml-2 h-4 w-4" />
+    </Button>
+  )
+
   return (
-    <div className="space-y-4">
-      {/* Search and Filter Controls */}
-      <div className="flex flex-col sm:flex-row gap-4">
-        <div className="relative flex-1">
-          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-          <Input
-            placeholder="Search URLs or titles..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="pl-10 glass-effect border-0"
-          />
-        </div>
-        <div className="flex gap-2">
-          <Button
-            variant={statusFilter === "all" ? "default" : "outline"}
-            size="sm"
-            onClick={() => setStatusFilter("all")}
-            className={statusFilter === "all" ? "gradient-bg" : "glass-effect border-0"}
-          >
-            All
-          </Button>
-          <Button
-            variant={statusFilter === "completed" ? "default" : "outline"}
-            size="sm"
-            onClick={() => setStatusFilter("completed")}
-            className={statusFilter === "completed" ? "gradient-bg" : "glass-effect border-0"}
-          >
-            Completed
-          </Button>
-          <Button
-            variant={statusFilter === "crawling" ? "default" : "outline"}
-            size="sm"
-            onClick={() => setStatusFilter("crawling")}
-            className={statusFilter === "crawling" ? "gradient-bg" : "glass-effect border-0"}
-          >
-            Active
-          </Button>
-          <Button
-            variant={statusFilter === "failed" ? "default" : "outline"}
-            size="sm"
-            onClick={() => setStatusFilter("failed")}
-            className={statusFilter === "failed" ? "gradient-bg" : "glass-effect border-0"}
-          >
-            Failed
-          </Button>
-        </div>
-      </div>
-
-      {/* Results Summary */}
-      <div className="flex items-center justify-between text-sm text-muted-foreground">
-        <span>
-          Showing {filteredData.length} of {data.length} URLs
-        </span>
-        {searchTerm && <span>Filtered by: "{searchTerm}"</span>}
-      </div>
-
-      {/* Table */}
-      <Card className="glass-effect border-0 overflow-hidden">
-        <Table>
-          <TableHeader>
-            <TableRow className="border-border/50 hover:bg-muted/30">
-              <TableHead className="font-semibold">URL</TableHead>
-              <TableHead className="font-semibold">Title</TableHead>
-              <TableHead className="font-semibold">Status</TableHead>
-              <TableHead className="font-semibold">Links</TableHead>
-              <TableHead className="font-semibold">Crawled</TableHead>
-              <TableHead className="font-semibold">Actions</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {filteredData.length === 0 ? (
+    <Card className="border-0 bg-card/50 backdrop-blur-sm shadow-xl overflow-hidden">
+      <CardHeader className="bg-gradient-to-r from-primary/5 to-purple-600/5 border-b border-primary/10">
+        <CardTitle className="flex items-center gap-2">
+          <Globe className="w-5 h-5 text-primary" />
+          Crawled URLs ({urls.length})
+        </CardTitle>
+      </CardHeader>
+      <CardContent>
+        <div className="rounded-lg border border-primary/10 bg-background/50 backdrop-blur-sm overflow-hidden">
+          <Table>
+            <TableHeader className="bg-gradient-to-r from-primary/5 to-purple-600/5">
               <TableRow>
-                <TableCell colSpan={6} className="text-center py-12">
-                  <div className="flex flex-col items-center gap-3">
-                    <Globe className="h-12 w-12 text-muted-foreground/50" />
-                    <div className="space-y-1">
-                      <p className="text-lg font-medium text-muted-foreground">
-                        {searchTerm ? "No matching URLs found" : "No URLs crawled yet"}
-                      </p>
-                      <p className="text-sm text-muted-foreground">
-                        {searchTerm ? "Try adjusting your search terms" : "Add a URL to get started"}
-                      </p>
-                    </div>
-                  </div>
-                </TableCell>
+                <TableHead className="w-12">
+                  <Checkbox
+                    checked={paginatedURLs.length > 0 && paginatedURLs.every((url) => selectedURLs.includes(url.id))}
+                    onCheckedChange={handleSelectAll}
+                  />
+                </TableHead>
+                <TableHead>
+                  <SortButton field="url">URL</SortButton>
+                </TableHead>
+                <TableHead>
+                  <SortButton field="title">Title</SortButton>
+                </TableHead>
+                <TableHead>
+                  <SortButton field="status">Status</SortButton>
+                </TableHead>
+                <TableHead>
+                  <SortButton field="internalLinks">Internal Links</SortButton>
+                </TableHead>
+                <TableHead>
+                  <SortButton field="externalLinks">External Links</SortButton>
+                </TableHead>
+                <TableHead>Broken Links</TableHead>
+                <TableHead>
+                  <SortButton field="createdAt">Created</SortButton>
+                </TableHead>
+                <TableHead className="w-20">Actions</TableHead>
               </TableRow>
-            ) : (
-              filteredData.map((item) => (
-                <TableRow
-                  key={item.id}
-                  className="cursor-pointer hover:bg-muted/30 transition-colors border-border/50"
-                  onClick={() => onRowClick(item)}
-                >
-                  <TableCell className="max-w-xs">
-                    <div className="flex items-center gap-2">
-                      <Globe className="h-4 w-4 text-muted-foreground flex-shrink-0" />
-                      <span className="truncate font-medium" title={item.url}>
-                        {item.url}
-                      </span>
-                    </div>
+            </TableHeader>
+            <TableBody>
+              {paginatedURLs.map((url) => (
+                <TableRow key={url.id}>
+                  <TableCell>
+                    <Checkbox
+                      checked={selectedURLs.includes(url.id)}
+                      onCheckedChange={(checked) => handleSelectURL(url.id, checked as boolean)}
+                    />
                   </TableCell>
                   <TableCell className="max-w-xs">
-                    <span className="truncate" title={item.title || "No title"}>
-                      {item.title || "No title"}
-                    </span>
-                  </TableCell>
-                  <TableCell>
-                    <div className="flex items-center gap-2">
-                      {getStatusIcon(item.status)}
-                      {getStatusBadge(item.status)}
+                    <div className="truncate" title={url.url}>
+                      {url.url}
                     </div>
                   </TableCell>
-                  <TableCell>
-                    <Badge variant="outline" className="font-mono">
-                      {item.links?.length || 0}
-                    </Badge>
-                  </TableCell>
-                  <TableCell>
-                    <div className="flex items-center gap-1 text-sm text-muted-foreground">
-                      <Calendar className="h-3 w-3" />
-                      {formatDate(item.crawled_at)}
+                  <TableCell className="max-w-xs">
+                    <div className="truncate" title={url.title || "N/A"}>
+                      {url.title || "N/A"}
                     </div>
                   </TableCell>
+                  <TableCell>{getStatusBadge(url.status)}</TableCell>
+                  <TableCell>{url.internalLinks || 0}</TableCell>
+                  <TableCell>{url.externalLinks || 0}</TableCell>
+                  <TableCell>
+                    {url.brokenLinks ? (
+                      <Badge variant="destructive">{url.brokenLinks.length}</Badge>
+                    ) : (
+                      <span className="text-muted-foreground">0</span>
+                    )}
+                  </TableCell>
+                  <TableCell>{new Date(url.createdAt).toLocaleDateString()}</TableCell>
                   <TableCell>
                     <Button
                       variant="ghost"
                       size="sm"
-                      onClick={(e) => {
-                        e.stopPropagation()
-                        onRowClick(item)
-                      }}
-                      className="hover:bg-primary/10"
+                      onClick={() => onViewDetails(url.id)}
+                      disabled={url.status !== "completed"}
                     >
-                      <ExternalLink className="h-4 w-4" />
+                      <Eye className="w-4 h-4" />
                     </Button>
                   </TableCell>
                 </TableRow>
-              ))
-            )}
-          </TableBody>
-        </Table>
-      </Card>
-    </div>
+              ))}
+            </TableBody>
+          </Table>
+        </div>
+
+        {/* Pagination */}
+        {totalPages > 1 && (
+          <div className="flex items-center justify-between mt-4">
+            <div className="text-sm text-muted-foreground">
+              Showing {startIndex + 1} to {Math.min(startIndex + itemsPerPage, urls.length)} of {urls.length} results
+            </div>
+            <div className="flex items-center gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setCurrentPage(currentPage - 1)}
+                disabled={currentPage === 1}
+                className="hover:bg-primary/10 hover:text-primary hover:border-primary/50 transition-colors"
+              >
+                <ChevronLeft className="w-4 h-4" />
+                Previous
+              </Button>
+              <span className="text-sm">
+                Page {currentPage} of {totalPages}
+              </span>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setCurrentPage(currentPage + 1)}
+                disabled={currentPage === totalPages}
+                className="hover:bg-primary/10 hover:text-primary hover:border-primary/50 transition-colors"
+              >
+                Next
+                <ChevronRight className="w-4 h-4" />
+              </Button>
+            </div>
+          </div>
+        )}
+      </CardContent>
+    </Card>
   )
 }
