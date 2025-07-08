@@ -14,6 +14,8 @@ export function useWebSocket() {
   const reconnectAttempts = useRef(0)
   const maxReconnectAttempts = 5
 
+  const connectLoaded = useRef(false)
+
   const connect = useCallback(() => {
     try {
       setConnectionStatus("connecting")
@@ -35,8 +37,10 @@ export function useWebSocket() {
       ws.current.onmessage = (event) => {
         try {
           const message: WebSocketMessage = JSON.parse(event.data)
+          console.log("Parsed message:", message)
           setLastMessage(message)
         } catch (err) {
+          console.log("Error parsing:", event.data)
           console.error("Error parsing WebSocket message:", err)
         }
       }
@@ -92,12 +96,16 @@ export function useWebSocket() {
   }, [])
 
   useEffect(() => {
+    if (connectLoaded.current)
+      return
+
+    connectLoaded.current = true
     connect()
 
     return () => {
       disconnect()
     }
-  }, [connect, disconnect])
+  }, [])
 
   return {
     connectionStatus,

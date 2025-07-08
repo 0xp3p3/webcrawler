@@ -28,11 +28,12 @@ function DashboardContent() {
   // Handle real-time updates from WebSocket
   useEffect(() => {
     if (lastMessage) {
-      if (lastMessage.type === "status_update" && lastMessage.url && lastMessage.status) {
+      if (lastMessage.type && lastMessage.url && lastMessage.status) {
+        console.log("LastMessage:", lastMessage)
         updateURLStatus(lastMessage.url, lastMessage.status, lastMessage.data)
       }
     }
-  }, [lastMessage, updateURLStatus])
+  }, [lastMessage])
 
   const handleAddURL = async (url: string) => {
     try {

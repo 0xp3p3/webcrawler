@@ -36,14 +36,14 @@ func main() {
 		log.Fatal("Failed to run migrations:", err)
 	}
 
-	// Initialize services
-	authService := services.NewAuthService(cfg.JWTSecret)
-	crawlerService := services.NewCrawlerService(db)
-	urlService := services.NewURLService(db, crawlerService)
-
 	// Initialize WebSocket hub
 	wsHub := websocket.NewHub()
 	go wsHub.Run()
+
+	// Initialize services
+	authService := services.NewAuthService(cfg.JWTSecret)
+	crawlerService := services.NewCrawlerService(db)
+	urlService := services.NewURLService(db, crawlerService, wsHub)
 
 	// Initialize handlers
 	authHandler := handlers.NewAuthHandler(authService, db)
