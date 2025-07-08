@@ -50,7 +50,7 @@ A full-stack web crawler application with a React/TypeScript frontend and Go bac
 
 1. **Clone the repository**
 ```bash
-git clone <repository-url>
+git clone https://github.com/0xp3p3/webcrawler.git
 cd web-crawler-dashboard
 ```
 
