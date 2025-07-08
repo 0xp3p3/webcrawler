@@ -48,6 +48,7 @@ export function URLDetails({ urlData, onBack }: URLDetailsProps) {
               <label className="text-sm font-medium text-muted-foreground">Status</label>
               <div className="mt-1">
                 <Badge variant={urlData.status === "completed" ? "default" : "destructive"}>{urlData.status}</Badge>
+                {urlData.status === "error" && <Badge className="ml-2" variant="destructive">{urlData.errorMessage}</Badge>}
               </div>
             </div>
 

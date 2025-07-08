@@ -9,6 +9,7 @@ export interface URLData {
   externalLinks: number | null
   brokenLinks: BrokenLink[] | null
   hasLoginForm: boolean | null
+  errorMessage: string
   createdAt: string
   updatedAt: string | null
   analysisDuration: number | null
