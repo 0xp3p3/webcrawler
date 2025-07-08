@@ -15,6 +15,7 @@ import { useWebSocket } from "@/hooks/use-websocket"
 import { useCrawlData } from "@/hooks/use-crawl-data"
 import { useAuth } from "@/hooks/use-auth"
 import type { WebSocketMessage } from "@/types/crawler"
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 
 function DashboardContent() {
   const [selectedURLs, setSelectedURLs] = useState<string[]>([])
@@ -100,13 +101,6 @@ function DashboardContent() {
     running: (Array.isArray(urls) ? urls : []).filter((u) => u.status === "running").length,
     completed: (Array.isArray(urls) ? urls : []).filter((u) => u.status === "completed").length,
     error: (Array.isArray(urls) ? urls : []).filter((u) => u.status === "error").length,
-  }
-
-  if (selectedURL) {
-    const urlData = (Array.isArray(urls) ? urls : []).find((u) => u.id === selectedURL)
-    if (urlData) {
-      return <URLDetails urlData={urlData} onBack={() => setSelectedURL(null)} />
-    }
   }
 
   if (loading) {
@@ -293,6 +287,21 @@ function DashboardContent() {
 
         {/* Add URL Dialog */}
         <AddURLDialog open={showAddDialog} onOpenChange={setShowAddDialog} onAddURL={handleAddURL} />
+
+        {/* URL Details Modal */}
+        {selectedURL && (
+          <Dialog open={!!selectedURL} onOpenChange={(open) => !open && setSelectedURL(null)}>
+            <DialogContent className="max-w-6xl max-h-[90vh] overflow-y-auto">
+              <DialogHeader>
+                <DialogTitle>URL Analysis Details</DialogTitle>
+              </DialogHeader>
+              {(() => {
+                const urlData = (Array.isArray(urls) ? urls : []).find((u) => u.id === selectedURL)
+                return urlData ? <URLDetails urlData={urlData} onBack={() => setSelectedURL(null)} /> : null
+              })()}
+            </DialogContent>
+          </Dialog>
+        )}
       </div>
     </div>
   )
