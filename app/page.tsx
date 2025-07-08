@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useCallback } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -14,6 +14,7 @@ import { AuthGuard } from "@/components/auth-guard"
 import { useWebSocket } from "@/hooks/use-websocket"
 import { useCrawlData } from "@/hooks/use-crawl-data"
 import { useAuth } from "@/hooks/use-auth"
+import type { WebSocketMessage } from "@/types/crawler"
 
 function DashboardContent() {
   const [selectedURLs, setSelectedURLs] = useState<string[]>([])
@@ -23,17 +24,43 @@ function DashboardContent() {
 
   const { user, logout } = useAuth()
   const { urls, loading, error, addURL, updateURLStatus, deleteURLs, rerunAnalysis } = useCrawlData()
-  const { connectionStatus, lastMessage, error: wsError } = useWebSocket()
+  const { connectionStatus, lastMessage, error: wsError, addMessageHandler } = useWebSocket()
 
-  // Handle real-time updates from WebSocket
+  // Reliable message handler using the new queue system
+  const handleWebSocketMessage = useCallback(
+    (message: WebSocketMessage) => {
+      console.log("Processing WebSocket message:", message)
+
+      if (message.type && message.url && message.status) {
+        console.log("Updating URL status:", {
+          url: message.url,
+          status: message.status,
+          data: message.data,
+        })
+
+        updateURLStatus(message.url, message.status, message.data)
+      } else {
+        console.warn("Invalid message format:", message)
+      }
+    },
+    [updateURLStatus],
+  )
+
+  // Register the message handler
+  useEffect(() => {
+    const cleanup = addMessageHandler(handleWebSocketMessage)
+    return cleanup
+  }, [addMessageHandler, handleWebSocketMessage])
+
+  // Fallback: Handle real-time updates from WebSocket (backward compatibility)
   useEffect(() => {
     if (lastMessage) {
       if (lastMessage.type && lastMessage.url && lastMessage.status) {
-        console.log("LastMessage:", lastMessage)
+        console.log("Fallback LastMessage processing:", lastMessage)
         updateURLStatus(lastMessage.url, lastMessage.status, lastMessage.data)
       }
     }
-  }, [lastMessage])
+  }, [lastMessage, updateURLStatus])
 
   const handleAddURL = async (url: string) => {
     try {

@@ -10,11 +10,57 @@ export function useWebSocket() {
   const [lastMessage, setLastMessage] = useState<WebSocketMessage | null>(null)
   const [error, setError] = useState<string | null>(null)
   const ws = useRef<WebSocket | null>(null)
-  const reconnectTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const reconnectTimeoutRef = useRef<NodeJS.Timeout | null>(null)
   const reconnectAttempts = useRef(0)
   const maxReconnectAttempts = 5
 
+  // Message queue to handle high-frequency messages
+  const messageQueue = useRef<WebSocketMessage[]>([])
+  const messageHandlers = useRef<Set<(message: WebSocketMessage) => void>>(new Set())
+  const processingQueue = useRef(false)
+
   const connectLoaded = useRef(false)
+
+  // Process message queue sequentially
+  const processMessageQueue = useCallback(async () => {
+    if (processingQueue.current || messageQueue.current.length === 0) {
+      return
+    }
+
+    processingQueue.current = true
+
+    while (messageQueue.current.length > 0) {
+      const message = messageQueue.current.shift()
+      if (message) {
+        // Update lastMessage for backward compatibility
+        setLastMessage(message)
+
+        // Notify all registered handlers
+        messageHandlers.current.forEach((handler) => {
+          try {
+            handler(message)
+          } catch (error) {
+            console.error("Error in message handler:", error)
+          }
+        })
+
+        // Small delay to prevent overwhelming the UI
+        await new Promise((resolve) => setTimeout(resolve, 10))
+      }
+    }
+
+    processingQueue.current = false
+  }, [])
+
+  // Register a message handler
+  const addMessageHandler = useCallback((handler: (message: WebSocketMessage) => void) => {
+    messageHandlers.current.add(handler)
+
+    // Return cleanup function
+    return () => {
+      messageHandlers.current.delete(handler)
+    }
+  }, [])
 
   const connect = useCallback(() => {
     try {
@@ -38,7 +84,12 @@ export function useWebSocket() {
         try {
           const message: WebSocketMessage = JSON.parse(event.data)
           console.log("Parsed message:", message)
-          setLastMessage(message)
+
+          // Add message to queue instead of directly setting state
+          messageQueue.current.push(message)
+
+          // Process queue asynchronously
+          processMessageQueue()
         } catch (err) {
           console.log("Error parsing:", event.data)
           console.error("Error parsing WebSocket message:", err)
@@ -71,7 +122,7 @@ export function useWebSocket() {
       setError("Failed to create WebSocket connection")
       setConnectionStatus("disconnected")
     }
-  }, [])
+  }, [processMessageQueue])
 
   const disconnect = useCallback(() => {
     if (reconnectTimeoutRef.current) {
@@ -85,6 +136,10 @@ export function useWebSocket() {
 
     setConnectionStatus("disconnected")
     reconnectAttempts.current = 0
+
+    // Clear message queue and handlers
+    messageQueue.current = []
+    messageHandlers.current.clear()
   }, [])
 
   const sendMessage = useCallback((message: any) => {
@@ -96,8 +151,7 @@ export function useWebSocket() {
   }, [])
 
   useEffect(() => {
-    if (connectLoaded.current)
-      return
+    if (connectLoaded.current) return
 
     connectLoaded.current = true
     connect()
@@ -105,7 +159,7 @@ export function useWebSocket() {
     return () => {
       disconnect()
     }
-  }, [])
+  }, [connect, disconnect])
 
   return {
     connectionStatus,
@@ -114,5 +168,6 @@ export function useWebSocket() {
     connect,
     disconnect,
     sendMessage,
+    addMessageHandler, // New method for reliable message handling
   }
 }
