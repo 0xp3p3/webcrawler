@@ -217,8 +217,8 @@ export function URLTable({
                       </div>
                     </TableCell>
                     <TableCell>{getStatusBadge(url.status)}</TableCell>
-                    <TableCell className="text-muted-foreground text-sm">{formatDate(url.created_at)}</TableCell>
-                    <TableCell className="text-muted-foreground text-sm">{formatDate(url.updated_at)}</TableCell>
+                    <TableCell className="text-muted-foreground text-sm">{formatDate(url.createdAt)}</TableCell>
+                    <TableCell className="text-muted-foreground text-sm">{formatDate(url.updatedAt)}</TableCell>
                     <TableCell>
                       <Button
                         variant="ghost"
