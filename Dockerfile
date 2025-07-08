@@ -7,11 +7,11 @@ WORKDIR /app
 RUN apk add --no-cache git
 
 # Copy go mod files
-COPY go.mod go.sum ./
+COPY backend/go.mod backend/go.sum ./
 RUN go mod download
 
-# Copy source code
-COPY . .
+# Copy backend source code
+COPY backend/ .
 
 # Build the application
 RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o main .
@@ -25,8 +25,8 @@ WORKDIR /root/
 # Copy the binary from builder stage
 COPY --from=builder /app/main .
 
-# Copy .env file if needed
-COPY --from=builder /app/.env .
+# Copy .env file if needed (from backend directory)
+COPY --from=builder /app/.env* ./
 
 EXPOSE 8080
 

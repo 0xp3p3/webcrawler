@@ -19,7 +19,9 @@ services:
       retries: 10
 
   backend:
-    build: .
+    build: 
+      context: .
+      dockerfile: Dockerfile
     container_name: webcrawler_backend
     environment:
       PORT: 8080
@@ -32,6 +34,23 @@ services:
       mysql:
         condition: service_healthy
     restart: unless-stopped
+
+  # Optional: Frontend service for development
+  frontend:
+    build:
+      context: .
+      dockerfile: Dockerfile.frontend
+    container_name: webcrawler_frontend
+    ports:
+      - "3000:3000"
+    environment:
+      - NEXT_PUBLIC_API_URL=http://backend:8080
+    depends_on:
+      - backend
+    volumes:
+      - .:/app
+      - /app/node_modules
+    command: npm run dev
 
 volumes:
   mysql_data:
