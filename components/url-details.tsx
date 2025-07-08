@@ -20,16 +20,8 @@ export function URLDetails({ urlData, onBack }: URLDetailsProps) {
   ]
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-2">
       <div className="flex items-center gap-4">
-        <Button
-          variant="outline"
-          onClick={onBack}
-          className="hover:bg-primary/10 hover:text-primary hover:border-primary/50 transition-colors bg-transparent"
-        >
-          <ArrowLeft className="w-4 h-4 mr-2" />
-          Back to Dashboard
-        </Button>
         <div className="flex-1 min-w-0">
           <p className="text-muted-foreground truncate">{urlData.url}</p>
         </div>
@@ -80,10 +72,10 @@ export function URLDetails({ urlData, onBack }: URLDetailsProps) {
 
             <div>
               <label className="text-sm font-medium text-muted-foreground">Heading Tags</label>
-              <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 mt-2">
+              <div className="grid grid-cols-5 gap-4 mt-2">
                 {urlData.headingTags &&
                   Object.entries(urlData.headingTags).map(([tag, count]) => (
-                    <div key={tag} className="text-center p-3 bg-muted rounded-lg">
+                    <div key={tag} className="text-center p-2 bg-muted rounded-lg">
                       <div className="text-2xl font-bold">{count}</div>
                       <div className="text-sm text-muted-foreground">{tag.toUpperCase()}</div>
                     </div>
