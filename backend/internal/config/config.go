@@ -15,7 +15,7 @@ func Load() *Config {
 	return &Config{
 		Port:        getEnv("PORT", "8080"),
 		Environment: getEnv("ENVIRONMENT", "development"),
-		DatabaseURL: getEnv("DATABASE_URL", "root:@tcp(localhost:3306)/webcrawler?charset=utf8mb4&parseTime=True&loc=Local"),
+		DatabaseURL: getEnv("DATABASE_URL", "root:password@tcp(localhost:3306)/webcrawler?charset=utf8mb4&parseTime=True&loc=Local"),
 		JWTSecret:   getEnv("JWT_SECRET", "your-super-secret-jwt-key-change-in-production"),
 	}
 }
